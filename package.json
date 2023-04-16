@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "debugBuild": "esbuild ./Scripts/components.ts --format=esm --bundle --sourcemap --outdir=wwwroot/js",
+    "releaseBuild": "esbuild ./Scripts/components.ts --format=esm --bundle --sourcemap --minify --outdir=wwwroot/js"
+  },
+  "dependencies": {
+    "esbuild": "^0.17.16",
+    "litepicker": "^2.0.12"
+  },
+  "devDependencies": {
+    "@types/node": "^18.7.9"
+  }
+}

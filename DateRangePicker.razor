@@ -1,0 +1,101 @@
+@inject IJSRuntime JsRuntime
+<div>
+    <div class="date-range-picker" @onclick="TogglePicker" @attributes="AdditionalAttributes">
+        @StartDate?.ToString(DisplayFormat) - @EndDate?.ToString(DisplayFormat)
+    </div>
+    <div @ref="_container" />
+</div>
+
+@code {
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    [Parameter]
+    public DateOnly? StartDate { get; set; } = DateOnly.FromDateTime(DateTime.Now).AddMonths(-1);
+
+    [Parameter]
+    public DateOnly? EndDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+
+    [Parameter]
+    public EventCallback DateRangeSelected { get; set; }
+
+    [Parameter]
+    public string DisplayFormat { get; set; } = "MMM d, yyyy";
+
+    [Parameter]
+    public DateOnly MaxDate { get; set; } = new(2050, 1, 1);
+
+    [Parameter]
+    public DateOnly MinDate { get; set; } = new(2000, 1, 1);
+
+    public async Task<DateRange?> GetDateRange()
+    {
+        DateOnly? startDate = await _litePicker!.InvokeAsync<DateOnly?>("getStartDate");
+        DateOnly? endDate = await _litePicker!.InvokeAsync<DateOnly?>("getEndDate");
+        if (startDate is null || endDate is null) return null;
+
+        return new DateRange(startDate.Value, endDate.Value);
+    }
+
+    public async Task Clear()
+    {
+        await _litePicker!.InvokeVoidAsync("clearSelection");
+    }
+
+    [JSInvokable]
+    public async Task JsDateRangeSelected(string startDateString, string endDateString)
+    {
+        Console.WriteLine($"Start Date: {startDateString}, End Date: {endDateString}");
+        StartDate = DateOnly.Parse(startDateString);
+        EndDate = DateOnly.Parse(endDateString);
+        await DateRangeSelected.InvokeAsync(new DateRange(StartDate!.Value, EndDate!.Value));
+        StateHasChanged();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_litePicker is not null)
+        {
+            await _litePicker.InvokeVoidAsync("setStartDate", StartDate);
+            await _litePicker.InvokeVoidAsync("setEndDate", EndDate);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_litePicker is null)
+        {
+            try
+            {
+                IJSObjectReference module = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/components.js");
+                _litePicker = await module.InvokeAsync<IJSObjectReference>("createDateRangePicker", _container,
+                    DotNetObjectRef, StartDate, EndDate, MinDate, MaxDate, MinDate.Year, MaxDate.Year);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+    }
+
+    private async Task TogglePicker()
+    {
+        if (_open)
+        {
+            await _litePicker!.InvokeVoidAsync("hide");
+        }
+        else
+        {
+            await _litePicker!.InvokeVoidAsync("show");
+        }
+
+        _open = !_open;
+    }
+
+    private ElementReference _container;
+    private IJSObjectReference? _litePicker;
+    private DotNetObjectReference<DateRangePicker> DotNetObjectRef => DotNetObjectReference.Create(this);
+    private bool _open;
+    
+    public record DateRange(DateOnly StartDate, DateOnly EndDate);
+}
