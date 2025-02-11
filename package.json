@@ -4,7 +4,7 @@
     "releaseBuild": "esbuild ./Scripts/components.ts --format=esm --bundle --sourcemap --minify --outdir=wwwroot/js"
   },
   "dependencies": {
-    "esbuild": "^0.17.16",
+    "esbuild": "^0.25.0",
     "litepicker": "^2.0.12"
   },
   "devDependencies": {
